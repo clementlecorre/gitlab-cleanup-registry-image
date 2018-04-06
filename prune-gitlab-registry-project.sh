@@ -5,7 +5,7 @@ set -e
 REPO="namespace/repo"
 USERNAME=USERNAME
 GITLAB_URL=gitlab.com
-GITLAB_REGISRTY_URL=regisrty.gitlab.com
+GITLAB_REGISTRY_URL=registry.gitlab.com
 GITLAB_TOKEN=xxxx
 REGEX_MATCHING="^issue-[0-9]+"
 ## -------------------------------
@@ -35,15 +35,15 @@ COLOR_RESET='\033[0m'
 token=$(curl -s --user "${USERNAME}:${GITLAB_TOKEN}" "https://${GITLAB_URL}/jwt/auth?service=container_registry&scope=repository:${REPO}:*" | jq -r '.token')
 
 # loop over all projets tags
-curl -s -H "Authorization: Bearer $token" "https://${GITLAB_REGISRTY_URL}/v2/${REPO}/tags/list" | jq -r '.tags[]' | while read tags; do
-    DIGEST=$(curl -sSL -D - -o /dev/null -XGET -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $token" "https://${GITLAB_REGISRTY_URL}/v2/${REPO}/manifests/${tags}" | tr -d "\015" | awk '/Docker-Content-Digest/ {print $NF}')
+curl -s -H "Authorization: Bearer $token" "https://${GITLAB_REGISTRY_URL}/v2/${REPO}/tags/list" | jq -r '.tags[]' | while read tags; do
+    DIGEST=$(curl -sSL -D - -o /dev/null -XGET -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $token" "https://${GITLAB_REGISTRY_URL}/v2/${REPO}/manifests/${tags}" | tr -d "\015" | awk '/Docker-Content-Digest/ {print $NF}')
     
     if echo $tags | grep -E "${REGEX_MATCHING}" > /dev/null
     then
-        echo -e "[${COLOR_GREEN_BOLD}DELETING${COLOR_RESET}] ${GITLAB_REGISRTY_URL}/${REPO}:${tags}"
+        echo -e "[${COLOR_GREEN_BOLD}DELETING${COLOR_RESET}] ${GITLAB_REGISTRY_URL}/${REPO}:${tags}"
         echo -e "\t=> ${DIGEST}"
-        curl -XDELETE -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $token" "https://${GITLAB_REGISRTY_URL}/v2/${REPO}/manifests/${DIGEST}"
+        curl -XDELETE -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $token" "https://${GITLAB_REGISTRY_URL}/v2/${REPO}/manifests/${DIGEST}"
     else
-        echo -e "[${COLOR_CYAN_BOLD}IGNORING${COLOR_RESET}] ${GITLAB_REGISRTY_URL}/${REPO}:${tags}"
+        echo -e "[${COLOR_CYAN_BOLD}IGNORING${COLOR_RESET}] ${GITLAB_REGISTRY_URL}/${REPO}:${tags}"
     fi
 done
